@@ -9,7 +9,7 @@
     - `text` missing, empty, or only whitespace: reject/400 error.
     - `text` too short to score (`detector.py` raises `ValueError` under 3 tokens): reject/400 error.
     - `creator_id` missing or empty: reject/400 error.
-    - `text` longer than 2,000 characters: reject/413 error. The limit is tied to the detector: `config.DETECTOR_MAX_TOKENS` is 400 tokens (~300 words/~1,800 characters) and `detector.py` truncates anything longer. Rejecting means every accepted submission is judged on all of its text.
+        - `text` longer than 1,800 characters: reject/413 error. The limit is tied to the detector: `config.DETECTOR_MAX_TOKENS` is 400 tokens (~300 words/~1,800 characters) and `detector.py` truncates anything longer. Rejecting means most accepted submission is judged on all of its text.
 
 2. **A `content_id` is created** (`uuid` is already imported in `app.py`). It adds the identifier that `/appeal` needs to find this item later.
 
@@ -62,27 +62,28 @@ A second-language student writes an essay in plain, common-word sentences and su
 
 - **In:** `{"text": "...", "creator_id": "..."}`
 - **Out, at minimum:** `content_id`, `guess` (`"ai"`, `"human"` or `"unsure"`), `confidence` (0.0 to 1.0), `label` (the reader-facing sentence), `model_score` (0.0 to 1.0), `style_score` (0.0 to 1.0)
-- **Bad input:** every rejection returns a JSON error with a stable `error` name and a plain-English `message`, and is written to the audit log with `audit.log_rejection`.
+- **Bad input:** every rejection returns a JSON error with a stable `error` name and a `message` that says what was wrong and what to send instead, and is written to the audit log with `audit.log_rejection`.
 
-  | Case | Status | `error` |
-  |---|---|---|
-  | Body isn't a JSON object | 400 | `invalid_json` |
-  | `text` missing, empty or whitespace | 400 | `missing_text` |
-  | `text` too short to score (under 3 tokens) | 400 | `text_too_short` |
-  | `creator_id` missing or empty | 400 | `missing_creator_id` |
-  | `text` over 2,000 characters | 413 | `text_too_long` |
+    | Case | Status | `error` | `message` |
+    |---|---|---|---|
+    | Body isn't a JSON object | 400 | `invalid_json` | The request body must be a JSON object with `text` and `creator_id`. |
+    | `text` missing, empty or whitespace | 400 | `missing_text` | No text was provided. Send the writing to check in the `text` field. |
+    | `text` too short to score (under 3 tokens) | 400 | `text_too_short` | The text is too short to check. Send at least a few sentences. |
+    | `creator_id` missing or empty | 400 | `missing_creator_id` | No `creator_id` was provided. Send the writer's id in the `creator_id` field. |
+    | `text` over 1,800 characters | 413 | `text_too_long` | The text is over the 1,800-character limit. Send a shorter piece. |
 
 ### `POST /appeal`
 
 - **In:** `{"content_id": "...", "reasoning": "..."}`
 - **Out (200):** `{"content_id": "...", "status": "under_review", "message": "..."}`. The `message` confirms the appeal was received and makes no promise about a review timeline, since no automatic re-check happens.
-- **Bad input:** every rejection returns a JSON error with a stable `error` name and a plain-English `message`.
+- **Repeat appeals:** an item can be appealed more than once. Each appeal returns 200 and is logged, and the status stays `under_review`.
+- **Bad input:** every rejection returns a JSON error with a stable `error` name and a `message` that says what was wrong and what to send instead.
 
-  | Case | Status | `error` |
-  |---|---|---|
-  | Body isn't a JSON object | 400 | `invalid_json` |
-  | `content_id` missing or empty | 400 | `missing_content_id` |
-  | `reasoning` missing or empty | 400 | `missing_reasoning` |
-  | `content_id` not in the log (checked with `audit.entries_for(id)`) | 404 | `unknown_content_id` |
+  | Case | Status | `error` | `message` |
+  |---|---|---|---|
+  | Body isn't a JSON object | 400 | `invalid_json` | The request body must be a JSON object with `content_id` and `reasoning`. |
+  | `content_id` missing or empty | 400 | `missing_content_id` | No `content_id` was provided. Send the id returned when the text was submitted. |
+  | `reasoning` missing or empty | 400 | `missing_reasoning` | No reasoning was provided. Explain in the `reasoning` field why the result is wrong. |
+  | `content_id` not in the log (checked with `audit.entries_for(id)`) | 404 | `unknown_content_id` | No submission was found with that `content_id`. Check the id and try again. |
 
 - **On success:** the `creator_id` is read from the original log entry (found with `audit.entries_for(content_id)`), then `audit.log_appeal(content_id, creator_id, reasoning)` writes the appeal beside the original decision and sets the status to `under_review`.
