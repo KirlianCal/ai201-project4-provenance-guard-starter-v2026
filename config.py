@@ -50,13 +50,20 @@ DETECTOR_MAX_TOKENS = 400
 # ─── Scoring (Milestone 4) ───────────────────────────────────────────────────
 # How much each signal counts toward the combined score.
 #
-# ⚠️ These are placeholders. Milestone 4 asks you to write your combining rule
-# down BEFORE you code it, and to put the numbers in your README. Whatever you
-# decide, it goes here.
+# Weights for the combining rule (rule written in design.md Step 5).
+# Final numbers are in the README under Signals and Scoring.
 
 WEIGHT_MODEL_SIGNAL = 0.5
 WEIGHT_STYLE_SIGNAL = 0.5
 
+
+# If the two signals differ by more than this, the result is clamped into the unsure band.
+DISAGREEMENT_GAP = 0.35
+
+# Weights inside the style signal (they sum to 1.0).
+STYLE_WEIGHT_SPREAD = 0.70
+STYLE_WEIGHT_VOCAB = 0.10
+STYLE_WEIGHT_PUNCT = 0.20
 
 # ─── Thresholds (Milestone 5) ────────────────────────────────────────────────
 # Where one label becomes another. Scores run 0.0 (confidently human) to 1.0
@@ -71,14 +78,9 @@ WEIGHT_STYLE_SIGNAL = 0.5
 # getting through. There is no setting that avoids the trade — only settings
 # that decide who pays for it.
 
-HUMAN_THRESHOLD = 0.35
-AI_THRESHOLD = 0.65
-
-# ⚠️ One thing that catches people out in Milestone 5. A weighted average can
-# only land between its two inputs — so while `style_signal` is still the stub
-# returning 0.5, the combined score can never leave 0.25–0.75 no matter what
-# the model signal says, and the human label needs a model score below 0.20 to
-# be reachable at all.
+HUMAN_THRESHOLD = 0.38
+AI_THRESHOLD = 0.75
+# Human text needs both signals low; signal one scores long text high, so only short text can reach the human label.
 #
 # If a label you can't reach is the problem, the fix is upstream of the
 # thresholds: a style signal that actually varies. `scoring.label_ranges()`
