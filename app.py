@@ -30,6 +30,7 @@ from flask import Flask, jsonify, request
 
 import audit
 import config
+import detector
 
 app = Flask(__name__)
 
@@ -202,14 +203,65 @@ def submit():
     payload = request.get_json(silent=True) or {}
 
     # TODO: delete this and build the route.
+    payload = request.get_json(silent=True)
+
+    def reject(status, error, message, creator_id="unknown"):
+        audit.log_rejection(creator_id=creator_id, reason=error)
+        return jsonify({"error": error, "message": message}), status
+
+    if not isinstance(payload, dict):
+        return reject(400, "invalid_json",
+                      "The request body must be a JSON object with `text` and `creator_id`.")
+
+    text = payload.get("text")
+    creator_id = payload.get("creator_id")
+    who = creator_id if isinstance(creator_id, str) and creator_id.strip() else "unknown"
+
+    if not isinstance(text, str) or not text.strip():
+        return reject(400, "missing_text",
+                      "No text was provided. Send the writing to check in the `text` field.", who)
+    if not isinstance(creator_id, str) or not creator_id.strip():
+        return reject(400, "missing_creator_id",
+                      "No `creator_id` was provided. Send the writer's id in the `creator_id` field.", who)
+    if len(text) > 1800:
+        return reject(413, "text_too_long",
+                      "The text is over the 1,800-character limit. Send a shorter piece.", who)
+
+    try:
+        model_score = detector.model_signal(text)
+    except ValueError:
+        return reject(400, "text_too_short",
+                      "The text is too short to check. Send at least a few sentences.", who)
+    except detector.DetectorUnavailable:
+        return reject(503, "detector_unavailable",
+                      "The detector model isn't available. Run `python detector.py` once to download it.", who)
+
+    content_id = str(uuid.uuid4())
+
+    # Placeholders until Milestones 4 and 5.
+    guess = "unsure"
+    confidence = 0.5
+    label = "PLACEHOLDER: label in Milestone 5."
+
+    audit.log_decision(
+        content_id=content_id,
+        creator_id=creator_id,
+        guess=guess,
+        model_score=model_score,
+        style_score=None,
+        combined_score=None,
+        label=label,
+        status="decided",
+    )
+
     return jsonify({
-        "error": "not_implemented",
-        "message": "POST /submit isn't built yet — see the TODO in app.py.",
-        "you_sent": {
-            "text_length": len(payload.get("text", "")),
-            "creator_id": payload.get("creator_id"),
-        },
-    }), 501
+        "content_id": content_id,
+        "guess": guess,
+        "confidence": confidence,
+        "label": label,
+        "model_score": model_score,
+        "style_score": None,
+    })
 
 
 @app.post("/appeal")

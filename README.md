@@ -39,7 +39,15 @@
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
 
+A submission goes through seven steps:
 
+1. **`POST /submit` receives the request** and checks the input before any model runs. A bad request (not a JSON object, missing or empty `text`, `text` too short to score, missing `creator_id`, or text over 1,800 characters) gets a specific error and is written to the audit log.
+2. **A `content_id` is created** (a UUID) so the audit log and `/appeal` can find the item later.
+3. **Signal one (`detector.py`)** runs the text through a local GPT-2 model and returns a 0-1 score for how predictable it is (higher = more likely AI).
+4. **Signal two (`stylometry.py`)** measures the shape of the text and returns a 0-1 score (higher = more likely AI).
+5. **`scoring.py::combine_signals`** merges the two scores into one.
+6. **`scoring.py::score_to_label`** turns that score into a guess (`ai`, `human` or `unsure`) and the sentence a reader sees.
+7. **`audit.py` writes the decision to `logs/audit.jsonl`**, and the response returns the `content_id`, guess, confidence, label, and both signal scores.
 
 ---
 
@@ -53,11 +61,11 @@
 
 ### Signal one — the model signal
 
-**What it measures:**
+**What it measures:** How predictable the text is to a small language model (GPT-2), turned into a 0-1 score.
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** AI text tends toward likely words, so a model finds it easier to predict. Human writing tends to be more surprising.
 
-**What it can't see:**
+**What it can't see:** Authorship. Predictability isn't authorship, so plain writing in common words and short sentences scores as machine-like, while dense, ornate prose often reads as human. It also scores only the first 400 tokens, so anything after that is never seen. My test runs: plain dog sentences 0.7848, an ornate sentence 0.3884, my own writing 0.4225, a plain casual sentence 0.648.
 
 ### Signal two — the style signal
 
@@ -116,6 +124,18 @@
 
 **A submission**
 
+
+```json
+{
+  "confidence": 0.5,
+  "content_id": "9fb25fca-b4e5-4328-aac8-79f168cdf2d2",
+  "guess": "unsure",
+  "label": "PLACEHOLDER: label in Milestone 5.",
+  "model_score": 0.648,
+  "style_score": null
+}
+```
+
 <!-- The response needs content_id, guess, confidence, label, AND both
      signal scores - model_score and style_score. Unit 8's tools read those
      two off the response, so leaving them out costs you next unit's
@@ -125,10 +145,6 @@
 $ curl -X POST http://127.0.0.1:5000/submit \
   -H "Content-Type: application/json" \
   -d '{"text": "...", "creator_id": "..."}'
-```
-
-```json
-
 ```
 
 **An appeal**
@@ -146,14 +162,48 @@ $ curl -X POST http://127.0.0.1:5000/appeal \
 **What the log shows afterwards**
 
 ```bash
-$ curl "http://127.0.0.1:5000/log?limit=3"
+$ curl "http://127.0.0.1:5000/log?limit=4"
 ```
 
 ```json
-
+{
+  "count": 4,
+  "entries": [
+    {
+      "combined_score": null,
+      "content_id": "9fb25fca-b4e5-4328-aac8-79f168cdf2d2",
+      "creator_id": "me",
+      "guess": "unsure",
+      "label": "PLACEHOLDER: label in Milestone 5.",
+      "model_score": 0.648,
+      "status": "decided",
+      "style_score": null,
+      "timestamp": "2026-11-04T05:09:28+00:00"
+    },
+    {
+      "creator_id": "me",
+      "event": "rejected",
+      "reason": "missing_text",
+      "status": "rejected",
+      "timestamp": "2026-11-04T05:10:30+00:00"
+    },
+    {
+      "creator_id": "unknown",
+      "event": "rejected",
+      "reason": "invalid_json",
+      "status": "rejected",
+      "timestamp": "2026-11-04T05:10:37+00:00"
+    },
+    {
+      "creator_id": "me",
+      "event": "rejected",
+      "reason": "text_too_short",
+      "status": "rejected",
+      "timestamp": "2026-11-04T05:10:44+00:00"
+    }
+  ]
+}
 ```
-
----
 
 ## How I Used AI
 
