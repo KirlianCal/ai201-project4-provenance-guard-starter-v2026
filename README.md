@@ -107,7 +107,9 @@ A submission goes through seven steps:
 <!-- It's the hardest of the three. It has to admit uncertainty without
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
-     I did not want the person to think they were being accused of something. In my tests, plain writing by real people often landed in this band, so many of the people reading this label will have written every word themselves. I named the word "accusation" and called the result "only a guess" so the label says plainly that it is not a finding about them.
+I did not want the person to think they were being accused of something. In my tests, plain writing by real people often landed in this band, so many of the people reading this label will have written every word themselves. I named the word "accusation" and called the result "only a guess" so the label says plainly that it is not a finding about them.
+
+**Are all three labels reachable?** Yes, but only with unusual text. Human: one ornate sentence ("The labyrinthine bureaucracy...") scored 0.3692 (model 0.3884, style 0.35), only 0.011 under the 0.38 line. AI: a contrived repetitive text ("The cat sat on the mat. The dog sat on the mat...") scored 0.9762 (model 0.9524, style 1.0). Unsure: my ordinary sentence ("We walked to the park...") scored 0.599. None of my realistic paragraph-length human or AI texts reached either confident label, so in practice almost everything lands in unsure.
 
 
 ---
@@ -189,17 +191,17 @@ $ curl "http://127.0.0.1:5000/log?limit=2"
 
 ## How I Used AI
 
-**Moment 1**
+**Moment 1: building the style signal**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* Help building `stylometry.py`: which measures to use and how to combine them into one 0-1 score.
+- *What came back:* Three measures (sentence-length spread, type-token ratio, punctuation density) with starting weights and scale cutoffs. When I ran it on four fresh paragraphs, it scored my plain human paragraph as more AI-like (0.481) than my clearly AI one (0.389), the opposite of what I expected.
+- *What I changed:* I printed each measure separately. Type-token ratio pointed the wrong way (AI 0.830, human 0.690 and 0.740), and the punctuation regex missed the spaced hyphens used as dashes in my Congress paragraph. I fixed the regex and moved the weights to 0.70 for sentence spread, 0.10 for vocabulary and 0.20 for punctuation. Style scores then separated the texts (human 0.397 and 0.280, AI 0.529 and 0.712).
 
-**Moment 2**
+**Moment 2: the character limit**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* Whether a 2,000-character limit would cover fringe cases like rare words or other languages, since the detector reads tokens, not characters.
+- *What came back:* A character limit can't guarantee that, because unusual text uses more tokens per character. The 1,800 figure was rough arithmetic from "400 tokens is about 300 words", not a measurement.
+- *What I changed:* I set the limit to 1,800 characters, tied it to the detector's 400-token cap, and adjusted the design claim to a softer, "most accepted submissions are judged on all of their text."
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 

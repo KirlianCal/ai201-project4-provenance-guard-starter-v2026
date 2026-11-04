@@ -48,6 +48,7 @@ Of 12 pieces I wrote myself, at most 2 get a combined score of 0.58 or higher, i
 
 **Why this target:** One flagged piece out of 12 is an accident. Two is the most I would accept in the real world, because a wrongly flagged writer is accused of something they didn't do. I want my own honest writing to land on the cusp of "unsure" (0.42 to 0.58), not past it.
   Seven of the twelve pieces are sections of one narrative, so they share a voice and topic and are not fully independent. The target covers interview answers and this narrative, not everything I write.
+  
 ---
 
 ## 2. AI and human text score far apart
