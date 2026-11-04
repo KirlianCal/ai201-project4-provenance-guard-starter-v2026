@@ -31,6 +31,8 @@ from flask import Flask, jsonify, request
 import audit
 import config
 import detector
+import scoring
+import stylometry
 
 app = Flask(__name__)
 
@@ -200,7 +202,6 @@ def submit():
     what should this do when `text` is missing, empty, or enormous? A crash on
     a malformed input is one of the most common real failures there is.
     """
-    payload = request.get_json(silent=True) or {}
 
     # TODO: delete this and build the route.
     payload = request.get_json(silent=True)
@@ -236,20 +237,19 @@ def submit():
         return reject(503, "detector_unavailable",
                       "The detector model isn't available. Run `python detector.py` once to download it.", who)
 
-    content_id = str(uuid.uuid4())
+    style_score = stylometry.style_signal(text)
+    combined = scoring.combine_signals(model_score, style_score)
+    guess, label = scoring.score_to_label(combined)  # placeholder until Milestone 5
 
-    # Placeholders until Milestones 4 and 5.
-    guess = "unsure"
-    confidence = 0.5
-    label = "PLACEHOLDER: label in Milestone 5."
+    content_id = str(uuid.uuid4())
 
     audit.log_decision(
         content_id=content_id,
         creator_id=creator_id,
         guess=guess,
         model_score=model_score,
-        style_score=None,
-        combined_score=None,
+        style_score=style_score,
+        combined_score=combined,
         label=label,
         status="decided",
     )
@@ -257,17 +257,17 @@ def submit():
     return jsonify({
         "content_id": content_id,
         "guess": guess,
-        "confidence": confidence,
+        "confidence": combined,
         "label": label,
         "model_score": model_score,
-        "style_score": None,
+        "style_score": style_score,
     })
 
 
 @app.post("/appeal")
 def appeal():
     """
-    A writer says you got it wrong. ← TODO — Milestone 5
+    A writer says you got it wrong.
 
     Expects JSON:
         {"content_id": "...", "reasoning": "..."}
@@ -284,14 +284,40 @@ def appeal():
     to the person on the other end. It's the only thing standing between a
     wrong accusation and nothing at all.
     """
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
 
-    # TODO: delete this and build the route.
+    def reject(status, error, message, content_id=None):
+        audit.log_rejection(creator_id="unknown", reason=error, content_id=content_id)
+        return jsonify({"error": error, "message": message}), status
+
+    if not isinstance(payload, dict):
+        return reject(400, "invalid_json",
+                      "The request body must be a JSON object with `content_id` and `reasoning`.")
+
+    content_id = payload.get("content_id")
+    reasoning = payload.get("reasoning")
+
+    if not isinstance(content_id, str) or not content_id.strip():
+        return reject(400, "missing_content_id",
+                      "No `content_id` was provided. Send the id returned when the text was submitted.")
+    if not isinstance(reasoning, str) or not reasoning.strip():
+        return reject(400, "missing_reasoning",
+                      "No reasoning was provided. Explain in the `reasoning` field why the result is wrong.",
+                      content_id)
+
+    original = next((e for e in audit.entries_for(content_id) if e.get("status") == "decided"), None)
+    if original is None:
+        return reject(404, "unknown_content_id",
+                      "No submission was found with that `content_id`. Check the id and try again.",
+                      content_id)
+
+    audit.log_appeal(content_id, original.get("creator_id", "unknown"), reasoning)
+
     return jsonify({
-        "error": "not_implemented",
-        "message": "POST /appeal isn't built yet — see the TODO in app.py.",
-        "you_sent": payload,
-    }), 501
+        "content_id": content_id,
+        "status": "under_review",
+        "message": "We've recorded your appeal and marked this item as under review.",
+    })
 
 
 # ── Already works ─────────────────────────────────────────────────────────────

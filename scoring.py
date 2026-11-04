@@ -53,10 +53,14 @@ def combine_signals(model_score: float, style_score: float) -> float:
     write a different rule.
     """
     # TODO: replace this
-    return (
+    avg = (
         config.WEIGHT_MODEL_SIGNAL * model_score
         + config.WEIGHT_STYLE_SIGNAL * style_score
     )
+    if abs(model_score - style_score) > config.DISAGREEMENT_GAP:
+        # Two methods disagreeing is uncertainty: keep the score inside the unsure band.
+        avg = max(config.HUMAN_THRESHOLD + 0.01, min(config.AI_THRESHOLD - 0.01, avg))
+    return round(avg, 4)
 
 
 def score_to_label(score: float) -> tuple[str, str]:
@@ -85,12 +89,15 @@ def score_to_label(score: float) -> tuple[str, str]:
     think if they got it on their own work. That question is the whole
     milestone.
     """
-    # TODO: replace this — thresholds are in config.py
+    # Thresholds are in config.py.
     if score >= config.AI_THRESHOLD:
-        return "ai", "PLACEHOLDER — write the high-confidence AI label."
+        return "ai", ("We think this may have been written with an AI tool. This is only an estimate, "
+                      "not proof. If you wrote it yourself, you may appeal and your work will be "
+                      "marked for review.")
     if score <= config.HUMAN_THRESHOLD:
-        return "human", "PLACEHOLDER — write the high-confidence human label."
-    return "unsure", "PLACEHOLDER — write the unsure label."
+        return "human", "We think this was probably written by a person."
+    return "unsure", ("We can't tell whether this was written by a person or by an AI tool. "
+                      "This is not an accusation, it is only a guess.")
 
 
 def label_ranges() -> list[tuple[str, str]]:

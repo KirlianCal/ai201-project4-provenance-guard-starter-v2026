@@ -65,32 +65,27 @@ A submission goes through seven steps:
 
 **Why that might differ between human and AI writing:** AI text tends toward likely words, so a model finds it easier to predict. Human writing tends to be more surprising.
 
-**What it can't see:** Authorship. Predictability isn't authorship, so plain writing in common words and short sentences scores as machine-like, while dense, ornate prose often reads as human. It also scores only the first 400 tokens, so anything after that is never seen. My test runs: plain dog sentences 0.7848, an ornate sentence 0.3884, my own writing 0.4225, a plain casual sentence 0.648.
+**What it can't see:** Authorship. Predictability isn't authorship, so plain writing in common words and short sentences scores as machine-like, while dense, ornate prose often reads as human. It also scores only the first 400 tokens, so anything after that is never seen. My test runs: plain dog sentences 0.7848, an ornate sentence 0.3884, my own writing 0.4225, a plain casual sentence 0.648. On four fresh paragraph-length texts its perplexity was 19.8 to 23.2 for all of them, so it did not discriminate.
 
 ### Signal two — the style signal
 
-**What it measures:**
+**What it measures:** The shape of the text without reading it: sentence-length spread (stdev divided by mean), type-token ratio over the first 100 words, and punctuation density (commas, semicolons, colons, dashes, brackets, quotes and spaced hyphens per word). Weights 0.70, 0.10 and 0.20.
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** AI text tends toward even sentence lengths and steady vocabulary and punctuation, while human writing is lumpier. On four fresh paragraphs only sentence spread behaved that way (human 0.434 and 0.531, AI 0.263 and 0.141). Type-token ratio pointed the wrong way and punctuation did not separate them, so I weighted spread most. Four texts is a small sample, so I treat this as a hypothesis.
 
-**What it can't see:**
+**What it can't see:** Meaning. Typos, split sentences or a pasted quotation change the shape without changing the substance, and that is cheap to do on purpose.
 
 ### The combining rule
 
-<!-- Write the rule in words, then give the numbers. What happens when the two
-     signals disagree? -->
+**The rule:** A weighted average of the two signals. If they differ by more than 0.35, the result is clamped into the unsure band, because two methods disagreeing is uncertainty and a wrong accusation costs more than a missed detection.
 
-**The rule:**
-
-**The numbers:**
+**The numbers:** Weights 0.5 and 0.5, disagreement gap 0.35, thresholds 0.38 (human) and 0.75 (AI), all in `config.py`.
 
 **Where it lives:** `scoring.py::combine_signals`
 
-<!-- ⚠️ The grader checks your code against that line. If your rule lives
-     somewhere else, say where. -->
+**A case where my two signals split, and what my rule does with it:** My dense scientific paragraph scored 0.743 on signal one (reads as AI) and 0.280 on signal two (reads as human), a gap of 0.46. The rule treated that as disagreement and kept the result in the unsure band (combined 0.511). The plain average was already inside the band there, so the clamp did not change the number. It does for more extreme splits: model 0.99 with style 0.55 averages 0.77 (an AI label), and the rule returns 0.74.
 
-**A case where my two signals split, and what my rule does with it:**
-
+**Result against the milestone check:** clearly AI and clearly human text did not score noticeably apart. On four fresh paragraphs the combined scores ran 0.511 to 0.746 and all landed in the unsure band, because signal one scored every paragraph 0.74 to 0.79. Signal two separated them better, but not enough to move any text into a confident label.
 
 
 ---
@@ -104,15 +99,15 @@ A submission goes through seven steps:
 
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human |  |  |
-| unsure |  |  |
-| high-confidence AI |  |  |
+| high-confidence human | 0.00 – 0.38 | We think this was probably written by a person. |
+| unsure | 0.38 – 0.75 | We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess. |
+| high-confidence AI | 0.75 – 1.00 | We think this may have been written with an AI tool. This is only an estimate, not proof. If you wrote it yourself, you may appeal and your work will be marked for review. |
 
 **Why I worded the "unsure" one this way:**
 <!-- It's the hardest of the three. It has to admit uncertainty without
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
-
+     I did not want the person to think they were being accused of something. In my tests, plain writing by real people often landed in this band, so many of the people reading this label will have written every word themselves. I named the word "accusation" and called the result "only a guess" so the label says plainly that it is not a finding about them.
 
 
 ---
@@ -124,15 +119,18 @@ A submission goes through seven steps:
 
 **A submission**
 
+```bash
+$ curl -X POST http://127.0.0.1:5000/submit -H "Content-Type: application/json" -d '{"text": "We walked to the park after school and talked about the game.", "creator_id": "me"}'
+```
 
 ```json
 {
-  "confidence": 0.5,
-  "content_id": "9fb25fca-b4e5-4328-aac8-79f168cdf2d2",
+  "confidence": 0.599,
+  "content_id": "5c61b2c3-46ef-43ba-8101-f8b827df6553",
   "guess": "unsure",
-  "label": "PLACEHOLDER: label in Milestone 5.",
+  "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
   "model_score": 0.648,
-  "style_score": null
+  "style_score": 0.55
 }
 ```
 
@@ -141,65 +139,49 @@ A submission goes through seven steps:
      two off the response, so leaving them out costs you next unit's
      diagnostics. -->
 
-```bash
-$ curl -X POST http://127.0.0.1:5000/submit \
-  -H "Content-Type: application/json" \
-  -d '{"text": "...", "creator_id": "..."}'
-```
 
 **An appeal**
 
 ```bash
-$ curl -X POST http://127.0.0.1:5000/appeal \
-  -H "Content-Type: application/json" \
-  -d '{"content_id": "...", "reasoning": "..."}'
+$ curl -X POST http://127.0.0.1:5000/appeal -H "Content-Type: application/json" -d '{"content_id": "5c61b2c3-46ef-43ba-8101-f8b827df6553", "reasoning": "I wrote this myself after a school trip."}'
 ```
 
 ```json
-
+{
+  "content_id": "5c61b2c3-46ef-43ba-8101-f8b827df6553",
+  "message": "We've recorded your appeal and marked this item as under review.",
+  "status": "under_review"
+}
 ```
 
 **What the log shows afterwards**
 
 ```bash
-$ curl "http://127.0.0.1:5000/log?limit=4"
+$ curl "http://127.0.0.1:5000/log?limit=2"
 ```
 
 ```json
 {
-  "count": 4,
+  "count": 2,
   "entries": [
     {
-      "combined_score": null,
-      "content_id": "9fb25fca-b4e5-4328-aac8-79f168cdf2d2",
+      "combined_score": 0.599,
+      "content_id": "5c61b2c3-46ef-43ba-8101-f8b827df6553",
       "creator_id": "me",
       "guess": "unsure",
-      "label": "PLACEHOLDER: label in Milestone 5.",
+      "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
       "model_score": 0.648,
       "status": "decided",
-      "style_score": null,
-      "timestamp": "2026-11-04T05:09:28+00:00"
+      "style_score": 0.55,
+      "timestamp": "2026-11-04T06:39:59+00:00"
     },
     {
+      "content_id": "5c61b2c3-46ef-43ba-8101-f8b827df6553",
       "creator_id": "me",
-      "event": "rejected",
-      "reason": "missing_text",
-      "status": "rejected",
-      "timestamp": "2026-11-04T05:10:30+00:00"
-    },
-    {
-      "creator_id": "unknown",
-      "event": "rejected",
-      "reason": "invalid_json",
-      "status": "rejected",
-      "timestamp": "2026-11-04T05:10:37+00:00"
-    },
-    {
-      "creator_id": "me",
-      "event": "rejected",
-      "reason": "text_too_short",
-      "status": "rejected",
-      "timestamp": "2026-11-04T05:10:44+00:00"
+      "event": "appeal",
+      "reasoning": "I wrote this myself after a school trip.",
+      "status": "under_review",
+      "timestamp": "2026-11-04T06:42:25+00:00"
     }
   ]
 }
