@@ -53,9 +53,8 @@ DETECTOR_MAX_TOKENS = 400
 # Weights for the combining rule (rule written in design.md Step 5).
 # Final numbers are in the README under Signals and Scoring.
 
-WEIGHT_MODEL_SIGNAL = 0.5
-WEIGHT_STYLE_SIGNAL = 0.5
-
+WEIGHT_MODEL_SIGNAL = 0.6
+WEIGHT_STYLE_SIGNAL = 0.4
 
 # If the two signals differ by more than this, the result is clamped into the unsure band.
 DISAGREEMENT_GAP = 0.35
