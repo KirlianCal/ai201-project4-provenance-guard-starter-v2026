@@ -396,21 +396,416 @@ whose work got caught: MF07. A writer submitted one ordinary sentence in Arabic.
 
 ## Run Log and Verdicts
 
-<!-- Your five criteria across three trials. `run_eval.py --label before`. -->
+I ran `python run_eval.py --label before` (three trials, output in `results/run_2026-11-10_2200_before.md`). Criterion 4 needs a submission followed by an appeal, which `scenarios.py` can't express, so I ran it with my own script, `appeal_eval.py`. I ran three request bodies that aren't JSON objects by hand with curl. All three trials of every criterion matched each other exactly.
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |
+| 1. Own writing rarely flagged | at most 2 of 12 at 0.58 or higher | 7/12 | 7/12 | 7/12 | MISSED |
+| 2. AI and human text far apart | all 6 human at 0.38 or lower, at least 5 of 6 AI at 0.75 or higher | 0/6 human, 0/6 AI | 0/6, 0/6 | 0/6, 0/6 | MISSED |
+| 3. All three labels reachable | 3 of 3, same label each run | 3/3 | 3/3 | 3/3 | MET |
+| 4. Appeals always change status and are recorded | 8 appeals, 3 error cases, repeat appeal | 8/8, 3/3, 1/1 | 8/8, 3/3, 1/1 | 8/8, 3/3, 1/1 | MET |
+| 5. Bad input gets a specific error, never a crash | exact status for every case, none a 500, each in the log | 12/12 statuses, 3/3 by hand | 12/12, 3/3 | 12/12, 3/3 | MET |
+
+**How I decided:**
+
+- **Criterion 1:** 7 of my 12 pieces scored 0.58 or higher (0.6306, 0.5834, 0.6467, 0.6116, 0.6109, 0.6677, 0.5864), against a limit of 2. None was labeled AI, since the highest was 0.6677, but my criterion was about the 0.58 line, so it is a miss.
+- **Criterion 2:** the six book excerpts scored 0.4495 to 0.7026, none at 0.38 or lower. The six AI paragraphs scored 0.5541 to 0.6102, none at 0.75 or higher. The groups overlap almost completely, and one human excerpt (0.7026) scored higher than every AI paragraph.
+- **Criterion 3:** met, but narrowly. The human label passed by 0.0108 (0.3692 against 0.38) using one ornate sentence, and the AI label needed a contrived repetitive text (0.9762).
+- **Criterion 4:** `appeal_eval.py` sent 8 appeals per trial, each returning 200 with `under_review`, with the original decision unchanged and exactly one appeal entry. The three error cases returned the right status and error name, and a repeat appeal on one item returned 200 and logged a second appeal.
+- **Criterion 5:** all 12 bad-input bodies returned the status in my design table in every trial (400 for empty, whitespace, missing text, null, number, list, a one-word text and no `creator_id`, 413 for 1,801 characters and the huge text, 200 for exactly 1,800 characters and for punctuation-only text). The three non-object bodies returned 400 `invalid_json`, and nothing returned a 500. The log holds 27 rejection entries and 6 decision entries from that scenario across three trials, so every bad input left a trace. I did not machine-check the message text, which comes straight from the tables in `design.md`.
 
 **Real output from one trial**, pasted as text, naming the file and function
 that produced it:
 
-```json
+Criteria 1, 2, 3 and 5 come from `run_eval.py::main`, Trial 1 of `results/run_2026-11-10_2200_before.md`:
 
+```json
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6306,
+    "model_score": 0.6553,
+    "style_score": 0.6059,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "I\u2019m graduating in May with my associate\u2019s in Computer Software Enginee"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5834,
+    "model_score": 0.6387,
+    "style_score": 0.528,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "Balancing school, projects, and other responsibilities has required me"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5685,
+    "model_score": 0.6546,
+    "style_score": 0.4825,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "I focus on keeping communication clear and easy to understand. I\u2019m a v"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6467,
+    "model_score": 0.6607,
+    "style_score": 0.6328,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "To me, accountability means taking ownership of your responsibilities "
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6116,
+    "model_score": 0.7553,
+    "style_score": 0.4679,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "As a student, my recent experience has been focused more on education "
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.545,
+    "model_score": 0.5222,
+    "style_score": 0.5678,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "Months of work were being loaded into the battered school van all at o"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6109,
+    "model_score": 0.7073,
+    "style_score": 0.5145,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "The drive was mostly smooth, save for a few hiccups\u2014bathroom breaks an"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5204,
+    "model_score": 0.6339,
+    "style_score": 0.4069,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "I took one end of the five-foot board, and my teammate grabbed the oth"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5518,
+    "model_score": 0.5711,
+    "style_score": 0.5325,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "When it was finally our turn, we walked into the room, and the judges\u2019"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6677,
+    "model_score": 0.7378,
+    "style_score": 0.5975,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "We had a few hours to kill before the awards ceremony, so we went to W"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.4899,
+    "model_score": 0.5662,
+    "style_score": 0.4137,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "They went through the awards alphabetically, each name announced with "
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5864,
+    "model_score": 0.8313,
+    "style_score": 0.3414,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "I couldn\u2019t understand it. I had been so sure we\u2019d win. I looked over a"
+  }
+]
+
+### clearly human (6 book excerpts)
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5074,
+    "model_score": 0.6044,
+    "style_score": 0.4104,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "Globalization, the ever-increasing interconnectedness of the world, is"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.4882,
+    "model_score": 0.5962,
+    "style_score": 0.3803,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "Mesoamerica is the geographic area stretching from north of Panama up "
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.7026,
+    "model_score": 0.7936,
+    "style_score": 0.6117,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "The late seventeenth and early eighteenth centuries was a time of warf"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6089,
+    "model_score": 0.7045,
+    "style_score": 0.5134,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "Virginians, and a small group of Mingo warriors, were charged to build"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5772,
+    "model_score": 0.5692,
+    "style_score": 0.5851,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "The minority communities of Jews and Christians used to be a much larg"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.4495,
+    "model_score": 0.7991,
+    "style_score": 0.0998,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "The creation of Israel was another influence on the demographic make-u"
+  }
+]
+
+### clearly AI (6 Claude paragraphs)
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5541,
+    "model_score": 0.6641,
+    "style_score": 0.444,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "Remote work has fundamentally transformed the way organizations operat"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6102,
+    "model_score": 0.8754,
+    "style_score": 0.345,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "Sleep plays a crucial role in maintaining both physical and mental hea"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6008,
+    "model_score": 0.8125,
+    "style_score": 0.3892,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "Urban gardening has emerged as an increasingly popular way for city re"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5838,
+    "model_score": 0.888,
+    "style_score": 0.2796,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "Renewable energy has become a central focus in the global effort to ad"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5863,
+    "model_score": 0.7547,
+    "style_score": 0.4179,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "Social media has reshaped the way people communicate, share informatio"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5786,
+    "model_score": 0.7308,
+    "style_score": 0.4264,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "Learning a new language is a rewarding challenge that offers cognitive"
+  }
+]
+
+### label coverage
+[
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.3692,
+    "model_score": 0.3884,
+    "style_score": 0.35,
+    "label": "We think this was probably written by a person.",
+    "sent": "The labyrinthine bureaucracy, ostensibly designed to expedite grievanc"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.599,
+    "model_score": 0.648,
+    "style_score": 0.55,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "We walked to the park after school and talked about the game."
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9762,
+    "model_score": 0.9524,
+    "style_score": 1.0,
+    "label": "We think this may have been written with an AI tool. This is only an estimate, not proof. If you wrote it yourself, you may appeal and your work will be marked for review.",
+    "sent": "The cat sat on the mat. The dog sat on the mat. The cat sat on the rug"
+  }
+]
+
+### bad input
+[
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "(empty text)"
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "   "
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "{\"creator_id\": \"eval-bad-missing-text\"}"
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "{\"text\": null, \"creator_id\": \"eval-bad-null\"}"
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "{\"text\": 12345, \"creator_id\": \"eval-bad-number\"}"
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "{\"text\": [\"a\", \"b\"], \"creator_id\": \"eval-bad-list\"}"
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "hi"
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "{\"text\": \"We walked to the park after school and talked about the game.\"}"
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.8236,
+    "model_score": 0.9973,
+    "style_score": 0.65,
+    "label": "We think this may have been written with an AI tool. This is only an estimate, not proof. If you wrote it yourself, you may appeal and your work will be marked for review.",
+    "sent": "word word word word word word word word word word word word word word "
+  },
+  {
+    "status": 413,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "word word word word word word word word word word word word word word "
+  },
+  {
+    "status": 413,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "word word word word word word word word word word word word word word "
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.39,
+    "model_score": 0.0112,
+    "style_score": 0.65,
+    "label": "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess.",
+    "sent": "... !!! ??? ,,, ;;;"
+  }
+]
+```
+
+Criterion 4 comes from `appeal_eval.py::run_trial`:
+
+```
+Trial 1: appeals 8/8, error cases 3/3, repeat appeal 1/1
+Trial 2: appeals 8/8, error cases 3/3, repeat appeal 1/1
+Trial 3: appeals 8/8, error cases 3/3, repeat appeal 1/1
+```
+
+The three non-object bodies I ran by hand against `app.py::submit` (`[1,2]`, `{not json` and an empty body) each returned:
+
+```json
+{
+  "error": "invalid_json",
+  "message": "The request body must be a JSON object with `text` and `creator_id`."
+}
 ```
 
 **Diagnoses**
