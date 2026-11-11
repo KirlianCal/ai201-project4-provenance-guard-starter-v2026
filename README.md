@@ -74,12 +74,12 @@ A submission goes through seven steps:
 **Why that might differ between human and AI writing:** AI text tends toward even sentence lengths and steady vocabulary and punctuation, while human writing is lumpier. On four fresh paragraphs only sentence spread behaved that way (human 0.434 and 0.531, AI 0.263 and 0.141). Type-token ratio pointed the wrong way and punctuation did not separate them, so I weighted spread most. Four texts is a small sample, so I treat this as a hypothesis.
 
 **What it can't see:** Meaning. Typos, split sentences or a pasted quotation change the shape without changing the substance, and that is cheap to do on purpose.
-
+The numbe
 ### The combining rule
 
 **The rule:** A weighted average of the two signals. If they differ by more than 0.35, the result is clamped into the unsure band, because two methods disagreeing is uncertainty and a wrong accusation costs more than a missed detection.
 
-**The numbers:** Weights 0.5 and 0.5, disagreement gap 0.35, thresholds 0.38 (human) and 0.75 (AI), all in `config.py`.
+**The numbers:** Weights 0.5 and 0.5 (changed to 0.6 and 0.4 in Unit 8, see The Improvement), disagreement gap 0.35, thresholds 0.38 (human) and 0.75 (AI), all in `config.py`.
 
 **Where it lives:** `scoring.py::combine_signals`
 
@@ -418,6 +418,8 @@ that produced it:
 
 Criteria 1, 2, 3 and 5 come from `run_eval.py::main`, Trial 1 of `results/run_2026-11-10_2200_before.md`:
 
+**own writing (12 pieces)**
+
 ```json
 [
   {
@@ -529,8 +531,11 @@ Criteria 1, 2, 3 and 5 come from `run_eval.py::main`, Trial 1 of `results/run_20
     "sent": "I couldn\u2019t understand it. I had been so sure we\u2019d win. I looked over a"
   }
 ]
+```
 
-### clearly human (6 book excerpts)
+**clearly human (6 book excerpts)**
+
+```json
 [
   {
     "status": 200,
@@ -587,8 +592,11 @@ Criteria 1, 2, 3 and 5 come from `run_eval.py::main`, Trial 1 of `results/run_20
     "sent": "The creation of Israel was another influence on the demographic make-u"
   }
 ]
+```
 
-### clearly AI (6 Claude paragraphs)
+**clearly AI (6 Claude paragraphs)**
+
+```json
 [
   {
     "status": 200,
@@ -645,8 +653,11 @@ Criteria 1, 2, 3 and 5 come from `run_eval.py::main`, Trial 1 of `results/run_20
     "sent": "Learning a new language is a rewarding challenge that offers cognitive"
   }
 ]
+```
 
-### label coverage
+**label coverage**
+
+```json
 [
   {
     "status": 200,
@@ -676,8 +687,11 @@ Criteria 1, 2, 3 and 5 come from `run_eval.py::main`, Trial 1 of `results/run_20
     "sent": "The cat sat on the mat. The dog sat on the mat. The cat sat on the rug"
   }
 ]
+```
 
-### bad input
+**bad input**
+
+```json
 [
   {
     "status": 400,
@@ -790,6 +804,7 @@ Criteria 1, 2, 3 and 5 come from `run_eval.py::main`, Trial 1 of `results/run_20
 ]
 ```
 
+
 Criterion 4 comes from `appeal_eval.py::run_trial`:
 
 ```
@@ -813,7 +828,7 @@ The three non-object bodies I ran by hand against `app.py::submit` (`[1,2]`, `{n
 My pieces averaged 0.661 on the model signal and 0.508 on the style signal, and the combined mean was about 0.585, right at the 0.58 line, so roughly half my pieces fall on each side of it. The model signal measures how predictable text is to GPT-2, assigning higher AI scores to text with lower perplexity. My interview answers and plain narrative use relatively formal, straightforward and predictable language, which resembles the patterns the model associates with AI-generated writing. Four of my seven misses (pieces 01, 02, 04 and 05) are interview answers, the most formal pieces I wrote. My model average was only 0.017 below the human textbook excerpts' average of 0.678, so the signal treats genuine human writing as machine-like in general, not just mine. The style signal averaged close to neutral and did not pull my pieces toward a human label. The stage is signal one; the mechanism is that predictability rewards plain, formal sentences, which is how my interview answers are written.
 
 **Criterion 2 (AI and human text far apart): MISSED, 0 of 6 human at 0.38 or lower and 0 of 6 AI at 0.75 or higher.**
-Signal one ranked the AI paragraph higher in 29 of 36 pairs, but signal two did so in only 13 of 36, and the equal-weight average let signal two cancel most of signal one's gap. The model signal had a positive group gap of 0.110 (AI 0.788, human 0.678), while the style signal had a negative gap of 0.049 (AI 0.384, human 0.433). Of signal two's three measures, sentence-length spread did not distinguish the groups at all (human 0.371, AI 0.373). Type-token ratio (AI 0.815, human 0.725) and punctuation density (AI 0.094, human 0.087) were both higher for the AI paragraphs, and my style signal scores a higher value as more human, so both pushed the AI paragraphs the wrong way. My combining rule gave both signals equal 0.5 weights, so it reduced the useful model-signal gap from 0.110 to approximately 0.03. No combined score reached either threshold. The disagreement clamp's condition was met on several paragraphs (for example the Sleep paragraph, model 0.8754 against style 0.345), but the average was already inside the unsure band, so it never changed a score. The stage is signal two, with the combining rule as the stage that passed its error through; the mechanism is that Claude-written paragraphs use varied vocabulary and plenty of commas, which my style signal scores as human, while spread, the measure carrying most of the weight, could not tell the groups apart. On four fresh paragraphs earlier, spread did separate human from AI (human 0.434 and 0.531, AI 0.263 and 0.141), but that did not hold on the 24 committed samples, and I should have tested the weighting on more text before choosing it.
+Signal one ranked the AI paragraph higher in 29 of 36 pairs, but signal two did so in only 13 of 36, and the equal-weight average let signal two cancel most of signal one's gap. The model signal had a positive group gap of 0.110 (AI 0.788, human 0.678), while the style signal had a negative gap of 0.049 (AI 0.384, human 0.433). Of signal two's three measures, sentence-length spread did not distinguish the groups at all (human 0.371, AI 0.373). Type-token ratio (AI 0.815, human 0.725) and punctuation density (AI 0.094, human 0.087) were both higher for the AI paragraphs, and my style signal scores a higher value as more human, so both pushed the AI paragraphs the wrong way. My combining rule gave both signals equal 0.5 weights, so it reduced the useful model-signal gap from 0.110 to approximately 0.03. No combined score reached either threshold. On the 24 samples the clamp's condition was met on several paragraphs (for example the Sleep paragraph, model 0.8754 against style 0.345), but the average was already inside the unsure band, so it never changed a score there. The stage is signal two, with the combining rule as the stage that passed its error through; the mechanism is that Claude-written paragraphs use varied vocabulary and plenty of commas, which my style signal scores as human, while spread, the measure carrying most of the weight, could not tell the groups apart. On four fresh paragraphs earlier, spread did separate human from AI (human 0.434 and 0.531, AI 0.263 and 0.141), but that did not hold on the 24 committed samples, and I should have tested the weighting on more text before choosing it.
 
 **MF06 and MF07 (emoji-only text and an Arabic sentence labeled AI): BROKE, the worst outcome in the run.**
 Both received the AI label (0.8235 and 0.7782) although neither is AI-generated: MF06 is a block of repeating emoji and MF07 is an ordinary Arabic sentence. Neither contains any Latin letters, numbers or apostrophes, so `stylometry.words()` found zero words in both. Signal one gave them 0.9969 and 0.9064 because GPT-2 found them predictable, the repeating emoji most of all (perplexity 1.2, against 10.9 for the Arabic sentence). Signal two had nothing to measure, so all three of its measures returned 0.0, and `style_signal` turned those zeros into defaults: 0.5 for sentence spread (fewer than two sentences), 1.0 for vocabulary variety and 1.0 for punctuation, because a ratio and a density of zero both score as maximally AI-like. Weighted 0.70, 0.10 and 0.20, that is exactly the 0.65 in both log entries. So signal two did not abstain; it counted the absence of any measurable text as evidence for AI. The gap between the signals (0.347 for MF06 and 0.256 for MF07) did not exceed my 0.35 clamp, so the disagreement rule did not fire, and the average crossed the 0.75 threshold. The stage that makes this a false accusation is signal two, with signal one supplying the high score and the combining rule passing both through. The mechanism is that signal two's defaults for text with no Latin words lean AI instead of neutral.
@@ -822,7 +837,7 @@ Both received the AI label (0.8235 and 0.7782) although neither is AI-generated:
 Three attacks got a human label. Their model and style scores were 0.3212 and 0.1503 (EV05), 0.4625 and 0.2373 (PI01) and 0.2044 and 0.1741 (PI02), so both signals read them as human. The text behind each was AI-style writing with extra material added at the front: PI01 and PI02 are the same workplace-communication paragraph with an instruction in front, and EV05 had a heavy human editing pass. Neither signal reads instructions, so the instruction did nothing as an instruction; what mattered was its words and shape. The prefix words were hard for GPT-2 to predict (perplexity 49.4 for PI01, 105.2 for PI02 and 71.8 for EV05, against about 20 for an ordinary AI paragraph), which lowered the model score. The short added sentences ahead of a long paragraph made sentence lengths very uneven (spread 0.663, 0.652 and 0.675, against about 0.37 for my samples), and since spread carries 70% of the style signal and scores 0.70 as fully human, the style scores fell. PI03, with the same paragraph but a longer note in the writer's voice, had normal spread (0.343) and stayed unsure. The combining rule averaged two low scores into 0.2357, 0.3499 and 0.1893, all under 0.38. The stages are signal one and signal two; the mechanism is that prepending a few short, unusual sentences lowers both predictability and sentence-length regularity without changing the substance, which is the blind spot I named for each signal.
 
 **EV01-EV04, EV06-EV10 and PI03 (ten attacks that stayed unsure): BROKE under my rule, because AI text was not labeled AI.**
-Ten attacks used AI text and none reached the AI label (combined 0.39 to 0.74). My unmodified AI paragraphs combined at 0.55 to 0.61, so only EV04 (0.64) and EV10 (0.74) scored above that range; the other eight scored lower, which means the attacks did lower the score. Each lowered the signal it targeted: EV02 and EV06 dropped the style score to 0.154 and 0.179 by breaking up sentence lengths, and EV01 and EV08 dropped the model score to 0.164 and 0.245 (typos and a text too short to read). With equal 0.5 weights, one lowered signal was enough to pull the average out of reach of 0.75. My disagreement clamp also fired on three of them. On EV02 and EV06 it raised the average from 0.374 and 0.376 to 0.39, which kept AI text out of the human band. On EV10 (model 0.9792, style 0.6061) the plain average was 0.7927, which would have been an AI label, and the clamp capped it at 0.74. The stage is the combining rule together with signal two; the mechanism is that an equal-weight average lets one lowered signal hold AI text below 0.75, and my clamp, which protects human writers, also protected one AI text from being labeled AI.
+Ten attacks used AI text and none reached the AI label (combined 0.39 to 0.74). My unmodified AI paragraphs combined at 0.55 to 0.61, so only EV04 (0.64) and EV10 (0.74) scored above that range; the other eight scored lower, which means the attacks did lower the score. Each lowered the signal it targeted: EV02 and EV06 dropped the style score to 0.154 and 0.179 by breaking up sentence lengths, and EV01 and EV08 dropped the model score to 0.164 and 0.245 (EV01 added typos; EV08 targeted the token window). With equal 0.5 weights, one lowered signal was enough to pull the average out of reach of 0.75. On the attack run my disagreement clamp also changed the score on three of them. On EV02 and EV06 it raised the average from 0.374 and 0.376 to 0.39, which kept AI text out of the human band. On EV10 (model 0.9792, style 0.6061) the plain average was 0.7927, which would have been an AI label, and the clamp capped it at 0.74. The stage is the combining rule together with signal two; the mechanism is that an equal-weight average lets one lowered signal hold AI text below 0.75, and my clamp, which protects human writers, also protected one AI text from being labeled AI.
 
 **The pattern.** Most of these failures come from signal two and the way the combining rule treats it. Signal two scored the AI paragraphs as more human than the human excerpts (the AI paragraph scored higher on style in only 13 of 36 pairs), returned a silent default of 0.65 for text it could not read (MF06, MF07), and fell sharply on attacks that made sentence lengths uneven (EV02, EV05, EV06, PI01, PI02), because sentence-length spread carries 70% of its weight. The equal-weight average then let signal two cancel signal one, which did separate the groups (29 of 36 pairs). Signal one added its own bias: it scored plain human writing high, which drove criterion 1, and it read emoji and Arabic as machine-like, which drove MF06 and MF07. So the failures are not fifteen separate problems; they come mainly from one weak signal given an equal vote, plus one signal that mistakes plain or non-English text for machine writing.
 
@@ -917,15 +932,17 @@ All 56 attacks returned the same status and label as before (15 BROKE, 41 HELD).
 
 ## What's Still Broken
 
-<!-- For each attack still getting through and each criterion still missed:
-     what you'd do, and why you stopped. -->
+**Criterion 1 (my own writing flagged), still MISSED:** 8 of my 12 pieces score 0.58 or higher against a limit of 2, and my change made it one worse. What I'd do: replace the model signal's reliance on predictability with something that does not rate plain, formal writing as machine-like, or add a third signal. Why I stopped: the unit allows one change, and reweighting did not fix it, and raising the model weight made it worse (7 to 8 pieces).
 
+**Criterion 2 (AI and human far apart), still MISSED:** no human excerpt scores 0.38 or lower and no AI paragraph reaches 0.75. What I'd do: replace signal two's measures. Vocabulary variety and punctuation pointed the wrong way on my 24 samples, and sentence-length spread did not separate them. Why I stopped: that is a redesign of a signal, and it would need testing on far more than 24 samples.
 
+**MF06 and MF07 (emoji and Arabic labeled AI), still BROKE, and worse than before:** they rose from 0.8235 to 0.8581 and from 0.7782 to 0.8038. What I'd do: make signal two return a neutral 0.5 when it finds no words. At my current weights that gives both texts a combined score of 0.74, one hundredth under the AI line. MF06's plain average would be 0.798, above the line, so it is the disagreement clamp that holds it there, which makes the fix depend on a rule I did not design for this case. Why I stopped: I spent my one change on reweighting. In hindsight this was the better change, because it targets the failure I called my worst outcome.
 
-**The trade I'd make if this ran for real:**
+**EV05, PI01 and PI02 (human label on AI text), still BROKE:** What I'd do: measure sentence spread over the longest stretch of text, or ignore very short leading sentences, so a short prefix cannot inflate it. Why I stopped: it is another change to signal two, and it would need testing so that real human writing with short sentences is not penalised.
 
-<!-- Two sentences. Fewer wrong accusations means more AI text getting through.
-     Say which way you'd go and WHO PAYS FOR IT. -->
+**The ten attacks that stayed unsure, still BROKE under my rule:** What I'd do: better signals, not a different rule, because the average cannot reach 0.75 when signal two scores AI text at 0.28 to 0.44. Why I stopped: same reason as criterion 2.
+
+**The trade I'd make if this ran for real:** I would keep protecting writers even though more AI text gets through: none of my 6 AI paragraphs and none of the ten evasion attacks was labeled AI. The site and its other writers pay, because they get no reliable signal about AI-written work, while a wrongly accused writer pays more, because they lose their work or reputation and can only appeal.
 
 
 

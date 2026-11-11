@@ -9,7 +9,7 @@
     - `text` missing, empty, or only whitespace: reject/400 error.
     - `text` too short to score (`detector.py` raises `ValueError` under 3 tokens): reject/400 error.
     - `creator_id` missing or empty: reject/400 error.
-    - `text` longer than 1,800 characters: reject/413 error. The limit is tied to the detector: `config.DETECTOR_MAX_TOKENS` is 400 tokens (~300 words/~1,800 characters) and `detector.py` truncates anything longer. Rejecting means most accepted submission are  judged on all of its text.
+    - `text` longer than 1,800 characters: reject/413 error. The limit is tied to the detector: `config.DETECTOR_MAX_TOKENS` is 400 tokens (~300 words/~1,800 characters) and `detector.py` truncates anything longer. Rejecting means most accepted submissions are judged on all of their text.
 
 2. **A `content_id` is created** (`uuid` is already imported in `app.py`). It adds the identifier that `/appeal` needs to find this item later.
 
@@ -50,9 +50,9 @@
 
 A second-language student writes an essay in plain, common-word sentences and submits their own work. Following them through the service as it stands today:
 
-- **Score:** a plain writer would likely get a high signal one score, as the plain dog sentence did (0.7848). On four fresh paragraphs signal one scored 0.74 to 0.79 whatever the author, so it adds little. Signal two separated human from AI better, and the plain human paragraph scored 0.397 there. The combined score was 0.592, inside the unsure band, because the two signals disagreed by 0.39 and the rule clamps disagreement toward unsure.
+- **Score:** a plain writer would likely get a high signal one score, as the plain dog sentence did (0.7848). On four fresh paragraphs signal one scored 0.74 to 0.79 whatever the author, so it adds little. Signal two separated human from AI better, and the plain human paragraph scored 0.397 there. The combined score was 0.592, inside the unsure band. The signals disagreed by more than 0.35, so the rule would have kept it there either way.
 - **Current thresholds:** `config.py` has `HUMAN_THRESHOLD = 0.38` and `AI_THRESHOLD = 0.75`. A plain writer needs both signals to agree before they could be labeled AI.
-- **What the label said:** "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess." It reads as ...
+- **What the label said:** "We can't tell whether this was written by a person or by an AI tool. This is not an accusation, it is only a guess." It tells them plainly that the result is a guess and not an accusation, so they are not told they did something wrong.
 - **What they can do:** `POST /appeal` with `content_id` and `reasoning`. `audit.log_appeal` sets the status to `under_review` and records it beside the original decision. No automatic re-check, so this is the only thing between a wrong accusation and nothing.
 - **What it decides for the thresholds:** widening the unsure band means fewer wrong accusations and more AI text getting through. The thresholds decide who pays for that trade. Mine are 0.38 and 0.75, which keep a wide unsure band: fewer wrong accusations, and more AI text left unlabeled.
 
