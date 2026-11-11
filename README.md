@@ -209,24 +209,20 @@ $ curl "http://127.0.0.1:5000/log?limit=2"
 
 ## Rate Limiting
 
-**My limits:** ___ per minute, ___ per day
+**My limits:** 5 per minute, 125 per day
 
-**Why those numbers and not others:**
-<!-- Think about two people: a real writer submitting their own work a few
-     times an hour, and a script sending a thousand variations to map your
-     thresholds. Your numbers have to be liveable for the first and hostile to
-     the second. -->
+**Why those numbers and not others:** A real writer creating a draft, tweaking it and resubmitting might try three or five times in a minute, so 5 per minute lets that through while a script hits the wall after five requests. The daily cap matters because a patient script could stay under the per-minute limit but still send thousands of requests a day to map my thresholds. At 125 per day, an honest writer would never get close, but a thousand-variation probe from one identity would take about eight days. The cost is that a writer who retries many times quickly would get a 429 and have to wait a minute.
 
-**What a caller counts as:** <!-- per address, or per creator_id? They fail
-differently — one script can look like a thousand callers, and one household
-can look like one. -->
+**What a caller counts as:** Each `creator_id` is counted separately, and a request with no usable `creator_id` falls back to the caller's address. This stops one identity from flooding the service. It does not stop a script that sends a different `creator_id` on every request, which is how each row of the attack set is built. Counting by address would catch that, but it would also clump together everyone on shared network, so I choose per-creator.
 
 **The run of status codes when I pushed past it:**
 
 <!-- python run_attacks.py --flood 15 -->
 
 ```
-
+15 submissions as 'flood_tester' against http://127.0.0.1:5000
+200 200 200 200 200 429 429 429 429 429 429 429 429 429 429
+10 of 15 were rate limited.
 ```
 
 ---
